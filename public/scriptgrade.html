@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ScriptGrade — Teacher Dashboard</title>
+<meta name="description" content="ScriptGrade AI grading dashboard demonstrating 8 evaluation vulnerability engines." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<style>
+  html,body{font-family:'Inter',system-ui,sans-serif;}
+  .scrollbar-thin::-webkit-scrollbar{width:6px;height:6px}
+  .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px}
+  .glow{box-shadow:0 0 0 1px rgba(79,70,229,.25),0 0 18px -4px rgba(79,70,229,.55)}
+  .fade-in{animation:fade .35s ease both}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .switch{width:40px;height:22px;border-radius:9999px;transition:.2s}
+  .knob{width:16px;height:16px;border-radius:9999px;background:#fff;transition:.2s}
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+<!-- ================= HEADER ================= -->
+<header class="sticky top-0 z-30 bg-white border-b border-slate-200">
+  <div class="px-4 lg:px-6 py-3 flex flex-wrap items-center gap-4 justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-indigo-600 grid place-items-center glow">
+        <i data-lucide="scan-line" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-extrabold tracking-tight text-slate-900">ScriptGrade</h1>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 glow">Alibaba Cloud Qwen-Powered</span>
+        </div>
+        <p class="text-xs text-slate-500">Autonomous Answer-Sheet Evaluation Engine</p>
+      </div>
+    </div>
+
+    <div class="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+      <i data-lucide="book-open-check" class="w-4 h-4 text-indigo-600"></i>
+      <span class="text-xs font-semibold text-slate-700">Current Exam:</span>
+      <span class="text-xs text-slate-600">Biology 101 — Final Assessment (Term 1)</span>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-center divide-x divide-slate-200 rounded-lg border border-slate-200 bg-white text-xs">
+        <div class="px-3 py-1.5"><span class="font-bold text-slate-900">50</span> <span class="text-slate-500">Uploaded</span></div>
+        <div class="px-3 py-1.5"><span class="font-bold text-emerald-600">48</span> <span class="text-slate-500">Auto-Evaluated</span></div>
+        <div class="px-3 py-1.5"><span class="font-bold text-rose-600">2</span> <span class="text-slate-500">Flagged</span></div>
+        <div class="px-3 py-1.5"><span class="font-bold text-indigo-600">3.5 h</span> <span class="text-slate-500">Saved</span></div>
+      </div>
+      <button onclick="exportResults()" class="inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition">
+        <i data-lucide="download" class="w-4 h-4"></i> Export CSV / PDF
+      </button>
+      <div class="hidden md:flex items-center gap-1.5 text-xs px-2.5 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> All APIs Online
+      </div>
+      <div class="w-9 h-9 rounded-full bg-slate-900 text-white grid place-items-center text-xs font-bold">MK</div>
+    </div>
+  </div>
+</header>
+
+<!-- ================= MAIN ================= -->
+<main class="px-4 lg:px-6 py-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+  <!-- ============ LEFT PANEL ============ -->
+  <aside class="lg:col-span-3 space-y-5">
+
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="wand-sparkles" class="w-4 h-4 text-indigo-600"></i>
+        <h2 class="text-sm font-bold text-slate-900">Exam Setup &amp; One-Click AI Rubric</h2>
+      </div>
+      <button onclick="simulateRubric()" class="w-full flex items-center justify-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-xl border-2 border-dashed border-indigo-300 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50 transition">
+        <i data-lucide="upload-cloud" class="w-4 h-4"></i> Upload Exam Paper &amp; Reference Answer
+      </button>
+      <p id="rubricStatus" class="text-[11px] text-slate-500 mt-2">Reference answer parsed · rubric generated in 2.8s</p>
+
+      <div class="mt-4">
+        <p class="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2">Auto-Extracted Magic Concepts</p>
+        <div class="flex flex-wrap gap-1.5">
+          <span class="text-[11px] px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">Sunlight · w3</span>
+          <span class="text-[11px] px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">Chlorophyll · w3</span>
+          <span class="text-[11px] px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">Glucose · w2</span>
+          <span class="text-[11px] px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">CO₂ + H₂O · w2</span>
+        </div>
+      </div>
+
+      <div class="mt-4 space-y-2.5">
+        <div class="flex items-start justify-between gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+          <div>
+            <p class="text-xs font-semibold text-slate-800">Ignore Minor Spelling Mistakes</p>
+            <p class="text-[10px] text-slate-500">Levenshtein threshold 85% · Vuln #4</p>
+          </div>
+          <button id="tg-spelling" onclick="toggleSwitch('spelling')" class="switch bg-indigo-600 flex items-center px-0.5 justify-end shrink-0"><span class="knob"></span></button>
+        </div>
+        <div class="flex items-start justify-between gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+          <div>
+            <p class="text-xs font-semibold text-slate-800">Strict Procedural Order Matching</p>
+            <p class="text-[10px] text-slate-500">DAG sequence validation · Vuln #5</p>
+          </div>
+          <button id="tg-sequence" onclick="toggleSwitch('sequence')" class="switch bg-indigo-600 flex items-center px-0.5 justify-end shrink-0"><span class="knob"></span></button>
+        </div>
+        <div class="flex items-start justify-between gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+          <div>
+            <p class="text-xs font-semibold text-slate-800">Information Density Scoring</p>
+            <p class="text-[10px] text-slate-500">Anti-fluff normalization · Vuln #7</p>
+          </div>
+          <button id="tg-density" onclick="toggleSwitch('density')" class="switch bg-indigo-600 flex items-center px-0.5 justify-end shrink-0"><span class="knob"></span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="users" class="w-4 h-4 text-indigo-600"></i>
+          <h2 class="text-sm font-bold text-slate-900">Student Papers</h2>
+        </div>
+        <span class="text-[10px] font-semibold text-slate-500">Batch scan · 50</span>
+      </div>
+      <div id="studentList" class="space-y-2 max-h-[320px] overflow-y-auto scrollbar-thin pr-1"></div>
+      <div class="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
+        <span class="text-[11px] font-semibold text-slate-500">Class Average</span>
+        <span id="classAvg" class="text-sm font-extrabold text-indigo-600">—</span>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+      <div class="flex items-center gap-2 mb-1">
+        <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i>
+        <h2 class="text-sm font-bold text-slate-900">Score Distribution</h2>
+      </div>
+      <div id="distChart"></div>
+    </section>
+  </aside>
+
+  <!-- ============ CENTER PANEL ============ -->
+  <section class="lg:col-span-6 space-y-5">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm">
+      <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Evaluation Workspace</p>
+          <h2 id="caseTitle" class="text-base font-extrabold text-slate-900">—</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="caseSelect" onchange="selectCase(this.value)" class="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+          <span id="caseBadge" class="text-[11px] font-bold px-2.5 py-1.5 rounded-lg border">—</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+        <!-- submission -->
+        <div class="p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="file-text" class="w-4 h-4 text-slate-500"></i>
+            <p class="text-xs font-bold text-slate-700">Digitized Submission Sheet</p>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-[linear-gradient(transparent_31px,#eef2f7_32px)] [background-size:100%_32px] p-4 min-h-[240px]">
+            <p class="text-[11px] text-slate-400 mb-2" id="sheetMeta">—</p>
+            <div id="sheetBody" class="text-sm leading-7 text-slate-800"></div>
+          </div>
+          <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+            <div class="rounded-lg bg-slate-50 border border-slate-200 p-2">
+              <p class="text-[10px] text-slate-500">OCR Conf.</p>
+              <p id="mOcr" class="text-sm font-bold text-slate-900">—</p>
+            </div>
+            <div class="rounded-lg bg-slate-50 border border-slate-200 p-2">
+              <p class="text-[10px] text-slate-500">Word Count</p>
+              <p id="mWords" class="text-sm font-bold text-slate-900">—</p>
+            </div>
+            <div class="rounded-lg bg-slate-50 border border-slate-200 p-2">
+              <p class="text-[10px] text-slate-500">Density</p>
+              <p id="mDensity" class="text-sm font-bold text-slate-900">—</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- diagnostics -->
+        <div class="p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="activity" class="w-4 h-4 text-slate-500"></i>
+            <p class="text-xs font-bold text-slate-700">AI Diagnostic Breakdown</p>
+          </div>
+
+          <div id="scoreWidget" class="rounded-xl p-4 mb-3 border text-center">
+            <p class="text-[11px] font-semibold uppercase tracking-wide opacity-70">Overall Score</p>
+            <p id="scoreValue" class="text-4xl font-extrabold leading-tight">0 / 10</p>
+            <p id="scoreSub" class="text-[11px] font-medium opacity-80">—</p>
+          </div>
+
+          <div class="space-y-2.5">
+            <div class="rounded-xl border border-slate-200 p-3">
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-700">
+                <span>1 · Semantic Similarity</span><span id="engSim">—</span>
+              </div>
+              <div class="h-1.5 rounded-full bg-slate-100 mt-2 overflow-hidden"><div id="barSim" class="h-full bg-indigo-600 transition-all" style="width:0%"></div></div>
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-700 mt-3">
+                <span>Information Density Ratio</span><span id="engDen">—</span>
+              </div>
+              <div class="h-1.5 rounded-full bg-slate-100 mt-2 overflow-hidden"><div id="barDen" class="h-full bg-cyan-500 transition-all" style="width:0%"></div></div>
+            </div>
+            <div id="engNegBox" class="rounded-xl border p-3 text-xs font-semibold flex items-center gap-2">
+              <i data-lucide="shield-alert" class="w-4 h-4"></i><span id="engNeg">—</span>
+            </div>
+            <div id="engVisBox" class="rounded-xl border p-3 text-xs font-semibold flex items-center gap-2">
+              <i data-lucide="eye" class="w-4 h-4"></i><span id="engVis">—</span>
+            </div>
+            <div id="engSeqBox" class="rounded-xl border p-3 text-xs font-semibold flex items-center gap-2">
+              <i data-lucide="git-branch" class="w-4 h-4"></i><span id="engSeq">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- override -->
+      <div class="p-4 border-t border-slate-200 bg-slate-50/70 rounded-b-2xl">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="pencil-line" class="w-4 h-4 text-slate-500"></i>
+          <p class="text-xs font-bold text-slate-700">Teacher Manual Override</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <input id="ovScore" type="number" min="0" max="10" step="0.5" placeholder="Score /10" class="w-28 text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <input id="ovNote" type="text" placeholder="Add moderation note…" class="flex-1 min-w-[180px] text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <button onclick="confirmOverride()" class="inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition">
+            <i data-lucide="check" class="w-4 h-4"></i> Confirm Override
+          </button>
+        </div>
+        <p id="ovLog" class="text-[11px] text-slate-500 mt-2">No override applied to this paper.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT PANEL ============ -->
+  <aside class="lg:col-span-3 space-y-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="microscope" class="w-4 h-4 text-indigo-600"></i>
+        <h2 class="text-sm font-bold text-slate-900">Edge-Case Inspector</h2>
+      </div>
+      <div id="tabList" class="grid grid-cols-1 gap-1.5 max-h-[300px] overflow-y-auto scrollbar-thin pr-1"></div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+      <p class="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2">AI Analysis</p>
+      <p id="analysisText" class="text-xs leading-6 text-slate-700"></p>
+      <div id="analysisExtra" class="mt-3"></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+/* ---------------- DATA: 8 vulnerability cases ---------------- */
+const CASES = [
+  {
+    id:1, tab:"Garbage Text / Keyword Stuffing", title:"Roll #03 — Garbage Text Case",
+    student:"Student C (Roll #03)", question:"Q1. Explain Photosynthesis.",
+    ocr:"97.2%", words:38,
+    sheet:`Yesterday I was walking in the garden and saw <mark class="bg-rose-100 text-rose-700 rounded px-1">Sunlight</mark>. I like green leaves because they have <mark class="bg-rose-100 text-rose-700 rounded px-1">Chlorophyll</mark>. My favourite sweet fruit contains <mark class="bg-rose-100 text-rose-700 rounded px-1">Glucose</mark>.`,
+    sim:12, den:9, score:0, tone:"rose", badge:"REJECTED: Garbage Text",
+    neg:["ok","Negation Engine: no contradiction — but coherence failed"],
+    vis:["idle","Vision AI: no diagram submitted"],
+    seq:["idle","Sequence Graph: not applicable to descriptive answer"],
+    sub:"Keyword stuffing without logical coherence",
+    analysis:"Contextual Relevance Score: 12% (FAILED). High magic word count detected, but Sentence Embedding & Qwen LLM detected zero logical coherence with the question 'Explain Photosynthesis'. Score: 0/10."
+  },
+  {
+    id:2, tab:"Negation Trick", title:"Roll #04 — Negation Contradiction",
+    student:"Student D (Roll #04)", question:"Q1. Explain Photosynthesis.",
+    ocr:"98.4%", words:16,
+    sheet:`Photosynthesis is a process that does <mark class="bg-rose-200 text-rose-800 font-bold rounded px-1">NOT</mark> need <mark class="bg-amber-100 text-amber-800 rounded px-1">Sunlight</mark> or <mark class="bg-amber-100 text-amber-800 rounded px-1">Chlorophyll</mark> to produce Glucose.`,
+    sim:71, den:80, score:0, tone:"rose", badge:"REJECTED: Contradiction Detected",
+    neg:["bad","Dependency Parsing Alert: negative modifier 'NOT' → Sunlight, Chlorophyll"],
+    vis:["idle","Vision AI: no diagram submitted"],
+    seq:["idle","Sequence Graph: not applicable"],
+    sub:"Semantic entailment = contradiction",
+    analysis:"Dependency Parsing Alert: Negative modifier 'NOT' linked to keywords 'Sunlight' and 'Chlorophyll'. Semantic Entailment detected direct contradiction to reference answer. Score: 0/10."
+  },
+  {
+    id:3, tab:"Synonyms & Phrasing", title:"Roll #07 — Synonym Variation",
+    student:"Student F (Roll #07)", question:"Q1. Explain Photosynthesis.",
+    ocr:"96.8%", words:17,
+    sheet:`Plants capture <mark class="bg-emerald-100 text-emerald-700 rounded px-1">solar energy</mark> using <mark class="bg-emerald-100 text-emerald-700 rounded px-1">green pigments</mark> in their leaves to make <mark class="bg-emerald-100 text-emerald-700 rounded px-1">natural sugars</mark>.`,
+    sim:94, den:92, score:10, tone:"emerald", badge:"ACCEPTED: Semantic Match",
+    neg:["ok","Negation Engine: clean — no contradictions"],
+    vis:["idle","Vision AI: no diagram submitted"],
+    seq:["idle","Sequence Graph: not applicable"],
+    sub:"Synonym mapping resolved 3/3 concepts",
+    analysis:"Cosine Similarity: 94%. Synonym Mapping: Solar Energy → Sunlight, Green Pigments → Chlorophyll, Natural Sugars → Glucose. Score: 10/10."
+  },
+  {
+    id:4, tab:"Spelling Mistakes & Typos", title:"Roll #11 — Fuzzy Spelling",
+    student:"Student G (Roll #11)", question:"Q1. Explain Photosynthesis.",
+    ocr:"93.1%", words:11,
+    sheet:`In <mark class="bg-amber-100 text-amber-800 rounded px-1">fotosinthesis</mark>, plants use <mark class="bg-amber-100 text-amber-800 rounded px-1">clorophil</mark> to make <mark class="bg-amber-100 text-amber-800 rounded px-1">glucoss</mark>.`,
+    sim:91, den:90, score:10, tone:"emerald", badge:"ACCEPTED: Fuzzy Match",
+    neg:["ok","Negation Engine: clean"],
+    vis:["idle","Vision AI: no diagram submitted"],
+    seq:["idle","Sequence Graph: not applicable"],
+    sub:"Levenshtein auto-correction applied",
+    analysis:"Levenshtein Distance Analysis: Auto-corrected 'fotosinthesis' → 'Photosynthesis', 'clorophil' → 'Chlorophyll', 'glucoss' → 'Glucose'. 'Ignore Spelling' toggle active. Score: 10/10.",
+    dependsOn:"spelling",
+    offScore:4, offSim:46,
+    offAnalysis:"'Ignore Spelling' toggle DISABLED. Literal string matching failed on 'fotosinthesis', 'clorophil', 'glucoss' — 0/3 exact keyword hits, partial credit only for sentence structure. Score: 4/10.",
+    offBadge:"PARTIAL: Spelling Penalty", offTone:"amber"
+  },
+  {
+    id:5, tab:"Sequence Mismatch", title:"Roll #05 — Procedural Order Error",
+    student:"Student E (Roll #05)", question:"Q4. Describe the procedure to prepare tea.",
+    ocr:"97.9%", words:18,
+    sheet:`First <mark class="bg-rose-100 text-rose-700 rounded px-1">Serve Hot in a cup</mark>, then <mark class="bg-amber-100 text-amber-800 rounded px-1">Boil Water in a pan</mark>, and finally <mark class="bg-amber-100 text-amber-800 rounded px-1">Add Milk</mark>.`,
+    sim:88, den:84, score:2, tone:"amber", badge:"PARTIAL: Order Error",
+    neg:["ok","Negation Engine: clean"],
+    vis:["idle","Vision AI: no diagram submitted"],
+    seq:["bad","DAG Violation: Step 3 (Serve) executed before Step 1 (Boil)"],
+    sub:"Content present, chronology broken",
+    analysis:"Directed Acyclic Graph (DAG) Violation: Step 3 (Serve) executed before Step 1 (Boil). Procedural Flow Broken. Penalty Applied. Score: 2/10.",
+    dependsOn:"sequence", offScore:9, offBadge:"ACCEPTED: Order Ignored", offTone:"emerald",
+    offAnalysis:"'Strict Procedural Order Matching' toggle DISABLED. Steps evaluated as an unordered set: 3/3 required actions present. Sequence penalty waived. Score: 9/10.",
+    flow:[{t:"Serve Hot",s:"bad"},{t:"Boil Water",s:"warn"},{t:"Add Milk",s:"warn"}]
+  },
+  {
+    id:6, tab:"Diagrams (Vision AI)", title:"Roll #01 — Diagram Only Answer",
+    student:"Student A (Roll #01)", question:"Q6. Draw and label the human heart.",
+    ocr:"n/a (image)", words:0,
+    diagram:true, sheet:"",
+    sim:97, den:100, score:10, tone:"cyan", badge:"ACCEPTED: Qwen-VL Verified",
+    neg:["ok","Negation Engine: clean"],
+    vis:["good","Qwen-VL: 3/3 visual components detected"],
+    seq:["idle","Sequence Graph: not applicable"],
+    sub:"Text transcript empty, visual 100% accurate",
+    analysis:"Qwen-VL Multimodal Processing: Detected 3/3 required visual components (Left Atrium [98% confidence], Aorta [95% confidence], Directional Flow Arrows [91% confidence]). Text transcript empty, but visual diagram 100% accurate. Score: 10/10."
+  },
+  {
+    id:7, tab:"Length Bias / Density", title:"Roll #02 — Concise vs Lengthy",
+    student:"Student B (Roll #02)", question:"Q8. What is gravity?",
+    ocr:"98.0%", words:10,
+    sheet:`<mark class="bg-emerald-100 text-emerald-700 rounded px-1">Gravity is a fundamental force pulling objects toward Earth's center.</mark>`,
+    sim:96, den:95, score:10, tone:"emerald", badge:"ACCEPTED: High Density",
+    neg:["ok","Negation Engine: clean"],
+    vis:["idle","Vision AI: no diagram submitted"],
+    seq:["idle","Sequence Graph: not applicable"],
+    sub:"Normalized length scoring — no verbosity bonus",
+    analysis:"Normalized length scoring applied. Concise 1-liner awarded full points based on core concept coverage; the 180-word answer receives the identical 10/10 with 75% filler discarded.",
+    compare:true
+  },
+  {
+    id:8, tab:"Automated Rubric Setup", title:"Rubric Engine — Zero Manual Entry",
+    student:"Teacher Setup", question:"Reference Answer → Rubric",
+    ocr:"99.1%", words:42,
+    sheet:`<span class="text-slate-500 text-xs">Uploaded reference answer:</span><br/>Photosynthesis is the process where plants use <mark class="bg-indigo-100 text-indigo-700 rounded px-1">sunlight</mark>, <mark class="bg-indigo-100 text-indigo-700 rounded px-1">chlorophyll</mark>, <mark class="bg-indigo-100 text-indigo-700 rounded px-1">carbon dioxide</mark> and <mark class="bg-indigo-100 text-indigo-700 rounded px-1">water</mark> to produce <mark class="bg-indigo-100 text-indigo-700 rounded px-1">glucose</mark> and oxygen.`,
+    sim:100, den:100, score:10, tone:"indigo", badge:"RUBRIC GENERATED (2.8s)",
+    neg:["ok","Negation Engine: reference baseline stored"],
+    vis:["idle","Vision AI: standby for diagram questions"],
+    seq:["idle","Sequence Graph: step order captured where present"],
+    sub:"5 concepts · 6 synonym sets · 3 rules extracted",
+    analysis:"One-Click AI Rubric Extraction Engine: uploaded sample answer parsed into weighted magic keywords, synonym clusters and grading rules in 2.8 seconds. Zero manual entry required by the teacher.",
+    rubric:true
+  }
+];
+
+const TONES = {
+  emerald:{card:"bg-emerald-50 border-emerald-200 text-emerald-700", badge:"bg-emerald-50 border-emerald-200 text-emerald-700"},
+  rose:{card:"bg-rose-50 border-rose-200 text-rose-700", badge:"bg-rose-50 border-rose-200 text-rose-700"},
+  amber:{card:"bg-amber-50 border-amber-200 text-amber-700", badge:"bg-amber-50 border-amber-200 text-amber-700"},
+  cyan:{card:"bg-cyan-50 border-cyan-200 text-cyan-700", badge:"bg-cyan-50 border-cyan-200 text-cyan-700"},
+  indigo:{card:"bg-indigo-50 border-indigo-200 text-indigo-700", badge:"bg-indigo-50 border-indigo-200 text-indigo-700"}
+};
+const STATE = {spelling:true, sequence:true, density:true};
+let activeId = 1;
+
+const STUDENTS = [
+  {name:"Student A", roll:"#01", score:100, tag:"Vision Verified", tone:"cyan", caseId:6},
+  {name:"Student B", roll:"#02", score:100, tag:"Concise Answer", tone:"emerald", caseId:7},
+  {name:"Student C", roll:"#03", score:0, tag:"Garbage Text", tone:"rose", caseId:1},
+  {name:"Student D", roll:"#04", score:0, tag:"Negation Contradiction", tone:"rose", caseId:2},
+  {name:"Student E", roll:"#05", score:40, tag:"Sequence Mismatch", tone:"amber", caseId:5},
+  {name:"Student F", roll:"#07", score:100, tag:"Semantic Match", tone:"emerald", caseId:3},
+  {name:"Student G", roll:"#11", score:100, tag:"Fuzzy Match", tone:"emerald", caseId:4}
+];
+const overrides = {};
+
+/* ---------------- RENDER HELPERS ---------------- */
+function resolved(c){
+  const off = c.dependsOn && STATE[c.dependsOn] === false;
+  return {
+    score: off ? c.offScore : c.score,
+    sim: off && c.offSim !== undefined ? c.offSim : c.sim,
+    badge: off ? c.offBadge : c.badge,
+    tone: off ? c.offTone : c.tone,
+    analysis: off ? c.offAnalysis : c.analysis
+  };
+}
+
+function renderStudents(){
+  const el = document.getElementById("studentList");
+  el.innerHTML = STUDENTS.map(s=>{
+    const sc = overrides[s.caseId] !== undefined ? Math.round(overrides[s.caseId]*10) : s.score;
+    const t = TONES[s.tone];
+    return `<button onclick="selectCase(${s.caseId})" class="w-full text-left p-2.5 rounded-xl border ${activeId===s.caseId?'border-indigo-400 bg-indigo-50/50':'border-slate-200 hover:bg-slate-50'} transition">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold text-slate-800">${s.name} <span class="text-slate-400 font-normal">(Roll ${s.roll})</span></span>
+        <span class="text-xs font-extrabold ${sc>=80?'text-emerald-600':sc>=40?'text-amber-600':'text-rose-600'}">${sc}%</span>
+      </div>
+      <span class="mt-1 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${t.badge}">${s.tag}</span>
+    </button>`;
+  }).join("");
+  const avg = STUDENTS.reduce((a,s)=>a + (overrides[s.caseId]!==undefined?overrides[s.caseId]*10:s.score),0)/STUDENTS.length;
+  document.getElementById("classAvg").textContent = avg.toFixed(1) + "%";
+}
+
+function renderTabs(){
+  document.getElementById("tabList").innerHTML = CASES.map(c=>`
+    <button onclick="selectCase(${c.id})" class="w-full text-left px-3 py-2 rounded-xl border text-xs font-semibold transition ${activeId===c.id?'bg-indigo-600 text-white border-indigo-600':'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}">
+      <span class="opacity-60 mr-1">#${c.id}</span>${c.tab}
+    </button>`).join("");
+  document.getElementById("caseSelect").innerHTML = CASES.map(c=>`<option value="${c.id}" ${activeId===c.id?'selected':''}>${c.student} — ${c.tab}</option>`).join("");
+}
+
+function diagramHTML(){
+  return `<div class="rounded-xl border border-cyan-200 bg-cyan-50/60 p-4">
+    <svg viewBox="0 0 260 180" class="w-full h-44">
+      <path d="M130 165 C40 110, 55 30, 130 55 C205 30, 220 110, 130 165 Z" fill="#fff" stroke="#0891b2" stroke-width="3"/>
+      <line x1="130" y1="58" x2="130" y2="160" stroke="#0891b2" stroke-width="2" stroke-dasharray="4 3"/>
+      <circle cx="95" cy="85" r="4" fill="#0e7490"/><text x="20" y="80" font-size="10" fill="#0e7490">Left Atrium (98%)</text>
+      <path d="M150 50 C175 25, 205 40, 200 70" fill="none" stroke="#0e7490" stroke-width="3"/>
+      <text x="188" y="88" font-size="10" fill="#0e7490">Aorta (95%)</text>
+      <path d="M120 120 l0 -28" stroke="#0891b2" stroke-width="3" marker-end="url(#a)"/>
+      <path d="M145 95 l0 28" stroke="#0891b2" stroke-width="3" marker-end="url(#a)"/>
+      <defs><marker id="a" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#0891b2"/></marker></defs>
+      <text x="95" y="176" font-size="10" fill="#0e7490">Flow Arrows (91%)</text>
+    </svg>
+    <p class="text-[11px] text-cyan-700 font-semibold text-center">Handwritten diagram · Qwen-VL bounding boxes overlaid</p>
+  </div>`;
+}
+
+function extraHTML(c){
+  if(c.compare) return `
+    <div class="space-y-2">
+      <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+        <p class="text-[11px] font-bold text-emerald-700">Concise · Student A</p>
+        <p class="text-[11px] text-emerald-800 leading-5 mt-1">"Gravity is a fundamental force pulling objects toward Earth's center."</p>
+        <p class="text-[11px] font-semibold text-emerald-700 mt-1">Density 95% · Score 10/10</p>
+      </div>
+      <div class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+        <p class="text-[11px] font-bold text-amber-700">Lengthy · Student B</p>
+        <p class="text-[11px] text-amber-800 leading-5 mt-1">"Gravity is very interesting… Newton saw an apple… it keeps us on the ground… scientists studied it for years…"</p>
+        <p class="text-[11px] font-semibold text-amber-700 mt-1">Density 25% · Filler 75% · Score 10/10 (no length bonus)</p>
+      </div>
+    </div>`;
+  if(c.rubric) return `
+    <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-3 space-y-2">
+      <p class="text-[11px] font-bold text-indigo-700">Auto-Extracted Rubric</p>
+      <table class="w-full text-[11px] text-indigo-900">
+        <tr><td class="py-0.5">Sunlight</td><td class="text-right font-bold">3 pts</td></tr>
+        <tr><td class="py-0.5">Chlorophyll</td><td class="text-right font-bold">3 pts</td></tr>
+        <tr><td class="py-0.5">Glucose</td><td class="text-right font-bold">2 pts</td></tr>
+        <tr><td class="py-0.5">CO₂ + Water</td><td class="text-right font-bold">2 pts</td></tr>
+      </table>
+      <p class="text-[11px] text-indigo-700">Synonyms: solar energy, light energy, green pigment, natural sugar, carbon dioxide.</p>
+    </div>`;
+  if(c.flow) return `<div class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+      <p class="text-[11px] font-bold text-amber-700 mb-2">Chronological Flow Graph</p>
+      <div class="flex items-center gap-1 flex-wrap">
+        ${c.flow.map((f,i)=>`<span class="text-[10px] font-bold px-2 py-1 rounded-md ${f.s==='bad'?'bg-rose-100 text-rose-700':'bg-amber-100 text-amber-800'}">${i+1}. ${f.t}</span>${i<c.flow.length-1?'<span class="text-amber-500">→</span>':''}`).join("")}
+      </div>
+      <p class="text-[11px] text-amber-700 mt-2">Expected: Boil Water → Add Milk → Serve Hot</p>
+    </div>`;
+  return "";
+}
+
+function engineBox(id, boxId, state, text){
+  const map = {good:"bg-emerald-50 border-emerald-200 text-emerald-700", ok:"bg-slate-50 border-slate-200 text-slate-600",
+               bad:"bg-rose-50 border-rose-200 text-rose-700", idle:"bg-slate-50 border-slate-200 text-slate-400"};
+  document.getElementById(boxId).className = "rounded-xl border p-3 text-xs font-semibold flex items-center gap-2 " + map[state];
+  document.getElementById(id).textContent = text;
+}
+
+function render(){
+  const c = CASES.find(x=>x.id===activeId);
+  const r = resolved(c);
+  const ov = overrides[c.id];
+  const finalScore = ov !== undefined ? ov : r.score;
+  const tone = ov !== undefined ? "indigo" : r.tone;
+
+  document.getElementById("caseTitle").textContent = c.title;
+  const badgeEl = document.getElementById("caseBadge");
+  badgeEl.textContent = ov !== undefined ? "TEACHER OVERRIDE" : r.badge;
+  badgeEl.className = "text-[11px] font-bold px-2.5 py-1.5 rounded-lg border " + TONES[tone].badge;
+
+  document.getElementById("sheetMeta").textContent = c.question + " · " + c.student;
+  document.getElementById("sheetBody").innerHTML = c.diagram ? diagramHTML() : c.sheet;
+  document.getElementById("mOcr").textContent = c.ocr;
+  document.getElementById("mWords").textContent = c.words;
+  document.getElementById("mDensity").textContent = (STATE.density ? c.den : 100) + "%";
+
+  document.getElementById("scoreWidget").className = "rounded-xl p-4 mb-3 border text-center " + TONES[tone].card;
+  document.getElementById("scoreValue").textContent = finalScore + " / 10 Marks";
+  document.getElementById("scoreSub").textContent = ov !== undefined ? "Manually moderated by teacher" : c.sub;
+
+  document.getElementById("engSim").textContent = r.sim + "%";
+  document.getElementById("barSim").style.width = r.sim + "%";
+  const den = STATE.density ? c.den : 100;
+  document.getElementById("engDen").textContent = den + "%";
+  document.getElementById("barDen").style.width = den + "%";
+
+  engineBox("engNeg","engNegBox",c.neg[0],c.neg[1]);
+  engineBox("engVis","engVisBox",c.vis[0],c.vis[1]);
+  const seq = (c.dependsOn === "sequence" && !STATE.sequence) ? ["ok","Order matching disabled — steps scored as unordered set"] : c.seq;
+  engineBox("engSeq","engSeqBox",seq[0],seq[1]);
+
+  document.getElementById("analysisText").textContent = r.analysis;
+  document.getElementById("analysisExtra").innerHTML = extraHTML(c);
+  document.getElementById("ovLog").textContent = ov !== undefined
+    ? `Override applied: ${ov}/10 — ${overrides["note"+c.id] || "no note"}`
+    : "No override applied to this paper.";
+
+  renderTabs(); renderStudents(); lucide.createIcons();
+}
+
+/* ---------------- INTERACTIONS ---------------- */
+function selectCase(id){ activeId = Number(id); render(); }
+
+function toggleSwitch(key){
+  STATE[key] = !STATE[key];
+  const btn = document.getElementById("tg-"+key);
+  btn.className = "switch flex items-center px-0.5 shrink-0 " + (STATE[key] ? "bg-indigo-600 justify-end" : "bg-slate-300 justify-start");
+  render();
+}
+
+function confirmOverride(){
+  const v = parseFloat(document.getElementById("ovScore").value);
+  if(isNaN(v) || v < 0 || v > 10){ document.getElementById("ovLog").textContent = "Enter a valid score between 0 and 10."; return; }
+  overrides[activeId] = v;
+  overrides["note"+activeId] = document.getElementById("ovNote").value.trim();
+  const s = STUDENTS.find(x=>x.caseId===activeId);
+  if(s) s.score = Math.round(v*10);
+  document.getElementById("ovScore").value = ""; document.getElementById("ovNote").value = "";
+  render(); updateChart();
+}
+
+function simulateRubric(){
+  const el = document.getElementById("rubricStatus");
+  el.textContent = "Parsing reference answer with Qwen-VL…";
+  setTimeout(()=>{ el.textContent = "Reference answer parsed · rubric regenerated in 2.8s · 5 concepts, 6 synonym sets"; }, 1200);
+}
+
+function exportResults(){
+  const el = document.getElementById("rubricStatus");
+  el.textContent = "Export queued: scriptgrade_biology101_results.csv + .pdf";
+  setTimeout(()=>{ el.textContent = "Reference answer parsed · rubric generated in 2.8s"; }, 2500);
+}
+
+/* ---------------- CHART ---------------- */
+let chart;
+function buckets(){
+  const b = [0,0,0,0];
+  STUDENTS.forEach(s=>{
+    const sc = overrides[s.caseId]!==undefined ? overrides[s.caseId]*10 : s.score;
+    if(sc>=80) b[0]++; else if(sc>=60) b[1]++; else if(sc>=40) b[2]++; else b[3]++;
+  });
+  return b;
+}
+function updateChart(){ if(chart) chart.updateSeries([{name:"Students", data:buckets()}]); }
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  render();
+  chart = new ApexCharts(document.querySelector("#distChart"), {
+    chart:{type:"bar", height:190, toolbar:{show:false}, fontFamily:"Inter"},
+    series:[{name:"Students", data:buckets()}],
+    plotOptions:{bar:{borderRadius:6, columnWidth:"45%", distributed:true}},
+    colors:["#10b981","#6366f1","#f59e0b","#f43f5e"],
+    dataLabels:{enabled:true, style:{fontSize:"11px"}},
+    legend:{show:false},
+    xaxis:{categories:["80-100%","60-79%","40-59%","Flagged"], labels:{style:{fontSize:"10px", colors:"#64748b"}}},
+    yaxis:{labels:{style:{fontSize:"10px", colors:"#64748b"}}},
+    grid:{borderColor:"#e2e8f0"}
+  });
+  chart.render();
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>
